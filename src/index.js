@@ -1,4 +1,4 @@
-import HookedWalletSubprovider from 'web3-provider-engine/subproviders/hooked-wallet';
+import HookedWalletSubprovider from './hooked-wallet';
 import TrezorWallet from './TrezorWallet';
 
 export default async function (
