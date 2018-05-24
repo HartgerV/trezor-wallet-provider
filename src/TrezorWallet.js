@@ -1,10 +1,9 @@
 import EthereumTx from 'ethereumjs-tx';
 import TrezorConnect from './trezorConnect';
 
-const networkId = 73; // TODO network id from config
 export default class TrezorWallet {
-  constructor(getNetworkId, path) {
-    this.getNetworkdId = getNetworkId || (() => 1); // Function which should return networkId
+  constructor(networkId, path) {
+    this.networkId = networkId; // Function which should return networkId
     this.getAccounts = this.getAccounts.bind(this);
     this.signTransaction = this.signTransaction.bind(this);
     this.setDerivationPath = this.setDerivationPath.bind(this);
@@ -38,7 +37,7 @@ export default class TrezorWallet {
 
       // Set the EIP155 bits
       const tx = new EthereumTx(txData);
-      tx.raw[6] = Buffer.from([this.getNetworkId()]); // v
+      tx.raw[6] = Buffer.from([this.networkId]); // v
       tx.raw[7] = Buffer.from([]); // r
       tx.raw[8] = Buffer.from([]); // s
 
@@ -50,7 +49,7 @@ export default class TrezorWallet {
         TrezorWallet.makeHexEven(txData.to),
         TrezorWallet.makeHexEven(txData.value),
         TrezorWallet.makeHexEven(txData.data),
-        networkId,
+        this.networkId,
         (r) => {
           console.log(r);
           if (r.success) {

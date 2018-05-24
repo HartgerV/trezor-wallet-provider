@@ -2,11 +2,14 @@ import HookedWalletSubprovider from 'web3-provider-engine/subproviders/hooked-wa
 import TrezorWallet from './TrezorWallet';
 
 export default async function (
-  getNetworkId,
+  networkId,
   pathOverride,
 ) {
+  if(networkId == null) {
+    networkId = 1; //default to mainnet network id
+  }
   const trezor = new TrezorWallet(
-    getNetworkId,
+    networkId,
     pathOverride,
   );
 

@@ -20,7 +20,7 @@ import ProviderEngine from 'web3-provider-engine';
 import WebsocketSubProvider from 'web3-provider-engine/subproviders/websocket';
 import TrezorWalletSubProviderFactory from './providers/TrezorWalletSubprovider';
 
-const trezorWalletSubProvider = await TrezorWalletSubProviderFactory(getNetworkId, path);
+const trezorWalletSubProvider = await TrezorWalletSubProviderFactory(NETWORKID, DERIVATIONPATH);
 const engine = new ProviderEngine();
 const web3 = new Web3(engine);
 engine.addProvider(trezorWalletSubProvider);
