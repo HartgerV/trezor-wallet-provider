@@ -8,14 +8,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Neufund/ledger-wallet-provider.git"
+    "url": "git+https://github.com/HartgerV/trezor-wallet-provider.git"
   },
   "author": "Hartger Veeman @ Divisions",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/Neufund/ledger-wallet-provider/issues"
+    "url": "https://github.com/HartgerV/trezor-wallet-provider/issues"
   },
-  "homepage": "https://github.com/Neufund/ledger-wallet-provider#readme",
+  "homepage": "https://github.com/HartgerV/trezor-wallet-provider#readme",
   "devDependencies": {
     "babel-cli": "^6.26.0",
     "babel-loader": "^7.1.2",
