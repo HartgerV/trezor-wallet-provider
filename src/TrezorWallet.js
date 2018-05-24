@@ -32,8 +32,10 @@ export default class TrezorWallet {
 
   async signTransactionAsync(txData) {
     return new Promise((resolve, reject) => {
-      TrezorConnect.closeAfterFailure(false);
-      TrezorConnect.closeAfterSuccess(false);
+      //// Uncomment for debugging purposes:
+      // TrezorConnect.closeAfterFailure(false);
+      // TrezorConnect.closeAfterSuccess(false);
+
       // Set the EIP155 bits
       const tx = new EthereumTx(txData);
       tx.raw[6] = Buffer.from([this.getNetworkId()]); // v
