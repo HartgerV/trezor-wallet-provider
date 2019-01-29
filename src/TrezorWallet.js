@@ -1,5 +1,5 @@
 import EthereumTx from 'ethereumjs-tx';
-import TrezorConnect from './trezorConnect';
+import TrezorConnect from 'trezor-connect';
 
 export default class TrezorWallet {
   constructor(networkId, path) {
