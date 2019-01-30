@@ -86,7 +86,9 @@ export default class TrezorWallet {
 		});
 
 		device.on('pin', this._pinCallback);
-		device.on('passphrase', this._passphraseCallback);
+    device.on('passphrase', this._passphraseCallback);
+    
+    device.on('error', error => { throw new Error(error)});
 
 		currentDevice = device;
 		currentSession = session;
