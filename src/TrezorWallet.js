@@ -56,7 +56,7 @@ export default class TrezorWallet {
 	}
 
 	async _getCurrentSession() {
-		if (!list.transport) {
+		if (!this.deviceList.transport) {
 			throw new Error('TREZOR_BRIDGE_NOT_FOUND');
 		}
 
