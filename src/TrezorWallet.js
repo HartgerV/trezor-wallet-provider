@@ -16,6 +16,7 @@ const defaultAddress = [
 	(0 | hardeningConstant) >>> 0,
 	0
 ];
+const deviceList = new trezor.DeviceList();
 
 export default class TrezorWallet {
   constructor(networkId, accountsOffset = 0, accountsQuantity = 6, eventEmitter) {
@@ -24,15 +25,14 @@ export default class TrezorWallet {
     this.signTransaction = this.signTransaction.bind(this);
     this.accountsOffset = accountsOffset;
     this.accountsQuantity = accountsQuantity;
-    this.deviceList = new trezor.DeviceList();
     this.eventEmitter = eventEmitter;
     this.wallets = [];
     this._handleEvents();
   }
 
   _handleEvents() {
-    this.deviceList.on('transport', ()=> this.eventEmitter.emit('TREZOR_TRASNPORT_INITIALIZED'));
-    this.deviceList.on('error', error => this.eventEmitter.emit('TREZOR_ERROR', error ));
+    deviceList.on('transport', ()=> this.eventEmitter.emit('TREZOR_TRASNPORT_INITIALIZED'));
+    deviceList.on('error', error => this.eventEmitter.emit('TREZOR_ERROR', error ));
   } 
 
   _getAccountIndex(address) {
@@ -62,7 +62,7 @@ export default class TrezorWallet {
 	}
 
 	async _getCurrentSession() {
-		if (!this.deviceList.transport) {
+		if (!deviceList.transport) {
 			throw new Error('TREZOR_BRIDGE_NOT_FOUND');
 		}
 
@@ -73,7 +73,7 @@ export default class TrezorWallet {
 			await currentDevice.steal();
 		}
 
-		const { device, session } = await this.deviceList.acquireFirstDevice(true);
+		const { device, session } = await deviceList.acquireFirstDevice(true);
 
 		device.on('disconnect', () => {
 			currentDevice = null;
