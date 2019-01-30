@@ -61,8 +61,8 @@ export default class TrezorWallet {
 		this.eventEmitter.emit('TREZOR_PASSPHRASE_REQUEST');
 	}
 
-	async _getCurrentSession() {
-    return new Promise((resolve, reject) => {
+	_getCurrentSession() {
+    return new Promise(async (resolve, reject) => {
       if (!deviceList.transport) {
         reject(new Error('TREZOR_BRIDGE_NOT_FOUND'));
       }
@@ -71,30 +71,28 @@ export default class TrezorWallet {
         return currentSession;
       }
       if (currentDevice) {
-        currentDevice.steal();
+        await currentDevice.steal();
       }
   
-      deviceList.acquireFirstDevice(true).then(({device, session}) => {
-        device.on('disconnect', () => {
-          currentDevice = null;
-          currentSession = null;
-        });
-        device.on('changedSessions', (isUsed, isUsedHere) => {
-          if (isUsedHere) {
-            currentSession = null;
-          }
-        });
-    
-        device.on('pin', this._pinCallback);
-        device.on('passphrase', this._passphraseCallback);
-        
-        device.on('error', error => { throw new Error(error)});
-    
-        currentDevice = device;
-        currentSession = session;
-    
-        resolve(currentSession);
+      const { device, session } = await deviceList.acquireFirstDevice(true);
+  
+      device.on('disconnect', () => {
+        currentDevice = null;
+        currentSession = null;
       });
+      device.on('changedSessions', (isUsed, isUsedHere) => {
+        if (isUsedHere) {
+          currentSession = null;
+        }
+      });
+  
+      device.on('pin', this._pinCallback);
+      device.on('passphrase', this._passphraseCallback);
+
+      currentDevice = device;
+      currentSession = session;
+  
+      resolve(currentSession);
     });
 	}
 
