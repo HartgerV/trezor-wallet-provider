@@ -25,10 +25,15 @@ export default class TrezorWallet {
     this.accountsOffset = accountsOffset;
     this.accountsQuantity = accountsQuantity;
     this.deviceList = new trezor.DeviceList();
-    console.log('this.deviceList', this.deviceList);
     this.eventEmitter = eventEmitter;
     this.wallets = [];
+    this._handleEvents();
   }
+
+  _handleEvents() {
+    this.deviceList.on('transport', ()=> this.eventEmitter.emit('TREZOR_TRASNPORT_INITIALIZED'));
+    this.deviceList.on('error', error => this.eventEmitter.emit('TREZOR_IS_CONNECTED', error ));
+  } 
 
   _getAccountIndex(address) {
     return this.wallets.filter(wallet => {
