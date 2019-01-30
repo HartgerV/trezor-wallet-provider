@@ -62,38 +62,40 @@ export default class TrezorWallet {
 	}
 
 	async _getCurrentSession() {
-		if (!deviceList.transport) {
-			throw new Error('TREZOR_BRIDGE_NOT_FOUND');
-		}
-
-		if (currentSession) {
-			return currentSession;
-		}
-		if (currentDevice) {
-			await currentDevice.steal();
-		}
-
-		const { device, session } = await deviceList.acquireFirstDevice(true);
-
-		device.on('disconnect', () => {
-			currentDevice = null;
-			currentSession = null;
-		});
-		device.on('changedSessions', (isUsed, isUsedHere) => {
-			if (isUsedHere) {
-				currentSession = null;
-			}
-		});
-
-		device.on('pin', this._pinCallback);
-    device.on('passphrase', this._passphraseCallback);
-    
-    device.on('error', error => { throw new Error(error)});
-
-		currentDevice = device;
-		currentSession = session;
-
-		return currentSession;
+    return new Promise(async (resolve, reject) => {
+      if (!deviceList.transport) {
+        reject(new Error('TREZOR_BRIDGE_NOT_FOUND'));
+      }
+  
+      if (currentSession) {
+        return currentSession;
+      }
+      if (currentDevice) {
+        await currentDevice.steal();
+      }
+  
+      const { device, session } = await deviceList.acquireFirstDevice(true);
+  
+      device.on('disconnect', () => {
+        currentDevice = null;
+        currentSession = null;
+      });
+      device.on('changedSessions', (isUsed, isUsedHere) => {
+        if (isUsedHere) {
+          currentSession = null;
+        }
+      });
+  
+      device.on('pin', this._pinCallback);
+      device.on('passphrase', this._passphraseCallback);
+      
+      device.on('error', error => { throw new Error(error)});
+  
+      currentDevice = device;
+      currentSession = session;
+  
+      resolve(currentSession);
+    });
 	}
 
   async signTransactionAsync(txData) {
