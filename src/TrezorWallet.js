@@ -25,6 +25,7 @@ export default class TrezorWallet {
     this.accountsOffset = accountsOffset;
     this.accountsQuantity = accountsQuantity;
     this.deviceList = new trezor.DeviceList();
+    console.log('this.deviceList', this.deviceList);
     this.eventEmitter = eventEmitter;
     this.wallets = [];
   }
