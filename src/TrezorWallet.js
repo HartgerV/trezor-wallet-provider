@@ -136,30 +136,33 @@ export default class TrezorWallet {
      * @param {failableCallback} callback
      */
   async getAccounts(callback) {
+    try {
+      let session = await this._getCurrentSession();
 
-    let session = await this._getCurrentSession();
+      let addressN = {
+        address_n: defaultAddress
+      };
 
-		let addressN = {
-			address_n: defaultAddress
-		};
+      let result = await session.typedCall('GetPublicKey', 'PublicKey', addressN);
+      let chainCode = result.message.node.chain_code;
+      let publicKey = result.message.node.public_key;
 
-		let result = await session.typedCall('GetPublicKey', 'PublicKey', addressN);
-		let chainCode = result.message.node.chain_code;
-		let publicKey = result.message.node.public_key;
-
-		let hdk = new HDKey();
-		hdk.publicKey = Buffer.from(publicKey, 'hex');
-		hdk.chainCode = Buffer.from(chainCode, 'hex');
-		let pathBase = 'm';
-		let wallets = [];
-		for (let i = 0; i < this.accountsQuantity; i++) {
-			const index = i + this.accountsOffset;
-			const dkey = hdk.derive(`${pathBase}/${index}`);
-			const address =  `0x${publicToAddress(dkey.publicKey, true).toString('hex')}`;
-			wallets.push({address, index});
+      let hdk = new HDKey();
+      hdk.publicKey = Buffer.from(publicKey, 'hex');
+      hdk.chainCode = Buffer.from(chainCode, 'hex');
+      let pathBase = 'm';
+      let wallets = [];
+      for (let i = 0; i < this.accountsQuantity; i++) {
+        const index = i + this.accountsOffset;
+        const dkey = hdk.derive(`${pathBase}/${index}`);
+        const address =  `0x${publicToAddress(dkey.publicKey, true).toString('hex')}`;
+        wallets.push({address, index});
+      }
+      this.wallets = wallets;
+      callback(null, wallets);
+    } catch(error) {
+      callback(error, null);
     }
-    this.wallets = wallets;
-    callback(null, wallets);
   }
 
   /**
