@@ -61,7 +61,7 @@ export default class TrezorWallet {
 		this.eventEmitter.emit('TREZOR_PASSPHRASE_REQUEST');
 	}
 
-	_getCurrentSession() {
+	async _getCurrentSession() {
     return new Promise(async (resolve, reject) => {
       if (!deviceList.transport) {
         reject(new Error('TREZOR_BRIDGE_NOT_FOUND'));
