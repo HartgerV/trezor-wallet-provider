@@ -137,7 +137,7 @@ export default class TrezorWallet {
      */
   async getAccounts(callback) {
 
-    let session = await _getCurrentSession();
+    let session = await this._getCurrentSession();
 
 		let addressN = {
 			address_n: defaultAddress
