@@ -1,9 +1,9 @@
 import EthereumTx from 'ethereumjs-tx';
-import trezor from 'trezor.js';
 import { publicToAddress } from 'ethereumjs-util';
 import BigNumber from 'bignumber.js';
 import { timeout, TimeoutError } from 'promise-timeout';
 import HDKey from 'hdkey';
+const trezor = require('trezor.js');
 
 let currentSession = null;
 let currentDevice = null;
