@@ -32,7 +32,7 @@ export default class TrezorWallet {
 
   _handleEvents() {
     this.deviceList.on('transport', ()=> this.eventEmitter.emit('TREZOR_TRASNPORT_INITIALIZED'));
-    this.deviceList.on('error', error => this.eventEmitter.emit('TREZOR_IS_CONNECTED', error ));
+    this.deviceList.on('error', error => this.eventEmitter.emit('TREZOR_ERROR', error ));
   } 
 
   _getAccountIndex(address) {
