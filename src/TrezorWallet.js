@@ -74,7 +74,7 @@ export default class TrezorWallet {
         currentDevice.steal();
       }
   
-      deviceList.acquireFirstDevice(true).then((device, session) => {
+      deviceList.acquireFirstDevice(true).then(({device, session}) => {
         device.on('disconnect', () => {
           currentDevice = null;
           currentSession = null;
