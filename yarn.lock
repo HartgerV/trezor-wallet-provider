@@ -3217,10 +3217,10 @@ trezor-link@1.6.0:
     semver-compare "^1.0.0"
     whatwg-fetch "0.11.0"
 
-trezor.js@^6.19.4:
-  version "6.19.4"
-  resolved "https://registry.yarnpkg.com/trezor.js/-/trezor.js-6.19.4.tgz#d9a0a79afddccca6758173c38e6983cf0be2fbd7"
-  integrity sha512-p1WPTk6dvmmVKWCw7a1n3mSjq6Tv+s/GFatIHw9xsVhKnc4LfKR3YibS7S/QLhwaf1V/0BU4zFEpRf1BSau1NA==
+trezor.js@6.19.0:
+  version "6.19.0"
+  resolved "https://registry.yarnpkg.com/trezor.js/-/trezor.js-6.19.0.tgz#f71b0ca7c64acc631dcf3c6d34d59a4b4dc19369"
+  integrity sha512-LmsqUWya1psbON2s4ym8CXGVpASIsCXTIS8v1LTUKMXlNQ1uJnFsqt8FadwQ2Q1pX3TYyZS1kHYntT8+Zfe+wg==
   dependencies:
     bchaddrjs "^0.2.1"
     bitcoinjs-lib-zcash "^3.5.2"
