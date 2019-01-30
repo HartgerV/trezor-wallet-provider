@@ -1,83 +1,133 @@
 import EthereumTx from 'ethereumjs-tx';
-import TrezorConnect from 'trezor-connect';
+import trezor from 'trezor.js';
+import { publicToAddress } from 'ethereumjs-util';
+import BigNumber from 'bignumber.js';
+import { timeout, TimeoutError } from 'promise-timeout';
+import HDKey from 'hdkey';
+
+let currentSession = null;
+let currentDevice = null;
+const CUSTOM_TIME_OUT = 30000;
+
+const hardeningConstant = 0x80000000;
+const defaultAddress = [
+	(44 | hardeningConstant) >>> 0,
+	(60 | hardeningConstant) >>> 0,
+	(0 | hardeningConstant) >>> 0,
+	0
+];
 
 export default class TrezorWallet {
-  constructor(networkId, path) {
+  constructor(networkId, accountsOffset = 0, accountsQuantity = 6, eventEmitter) {
     this.networkId = networkId; // Function which should return networkId
     this.getAccounts = this.getAccounts.bind(this);
     this.signTransaction = this.signTransaction.bind(this);
-    this.setDerivationPath = this.setDerivationPath.bind(this);
-    this.setDerivationPath(path);
+    this.accountsOffset = accountsOffset;
+    this.accountsQuantity = accountsQuantity;
+    this.deviceList = new trezor.DeviceList();
+    this.eventEmitter = eventEmitter;
+    this.wallets = [];
   }
 
-  setDerivationPath(path) {
-    const newPath = path || "44'/60'/0'/0"; // default path for trezor
-
-    this.path = newPath;
+  _getAccountIndex(address) {
+    return this.wallets.filter(wallet => {
+      return wallet.address === address
+    })[0].index;
   }
 
-  static obtainPathComponentsFromDerivationPath(derivationPath) {
-    // check if derivation path follows 44'/60'/x'/n pattern
-    const regExp = /^(44'\/6[0|1]'\/\d+'?\/)(\d+)$/;
-    const matchResult = regExp.exec(derivationPath);
-    if (matchResult === null) {
-      throw new Error(
-        "To get multiple accounts your derivation path must follow pattern 44'/60|61'/x'/n ",
-      );
-    }
+  _getAddressByIndex(index) {
+    return defaultAddress.concat([+index]);
+  };
 
-    return { basePath: matchResult[1], index: parseInt(matchResult[2], 10) };
-  }
+  _pinCallback(type, callback) {
+		this.eventEmitter.on('ON_PIN', (err, enteredPin) => {
+			callback(err, enteredPin);
+		});
+
+		this.eventEmitter.emit('TREZOR_PIN_REQUEST');
+	}
+
+  _passphraseCallback(callback) {
+		this.eventEmitter.on('ON_PASSPHRASE', (err, enteredPassphrase) => {
+			callback(err, enteredPassphrase);
+		});
+
+		this.eventEmitter.emit('TREZOR_PASSPHRASE_REQUEST');
+	}
+
+	async _getCurrentSession() {
+		if (!list.transport) {
+			throw new Error('TREZOR_BRIDGE_NOT_FOUND');
+		}
+
+		if (currentSession) {
+			return currentSession;
+		}
+		if (currentDevice) {
+			await currentDevice.steal();
+		}
+
+		const { device, session } = await this.deviceList.acquireFirstDevice(true);
+
+		device.on('disconnect', () => {
+			currentDevice = null;
+			currentSession = null;
+		});
+		device.on('changedSessions', (isUsed, isUsedHere) => {
+			if (isUsedHere) {
+				currentSession = null;
+			}
+		});
+
+		device.on('pin', _pinCallback);
+		device.on('passphrase', _passphraseCallback);
+
+		currentDevice = device;
+		currentSession = session;
+
+		return currentSession;
+	}
 
   async signTransactionAsync(txData) {
-    return new Promise((resolve, reject) => {
-      //// Uncomment for debugging purposes:
-      // TrezorConnect.closeAfterFailure(false);
-      // TrezorConnect.closeAfterSuccess(false);
+    const accountIndex = this.getAccountIndex(txData.from);
 
-      // Set the EIP155 bits
-      const tx = new EthereumTx(txData);
-      tx.raw[6] = Buffer.from([this.networkId]); // v
-      tx.raw[7] = Buffer.from([]); // r
-      tx.raw[8] = Buffer.from([]); // s
+		Object.keys(txData).forEach(key => {
+			let val = txData[key];
+			val = val.replace(hexPrefix, '').toLowerCase();
+			txData[key] = val.length % 2 !== 0 ? `0${val}` : val;
+		});
 
-      TrezorConnect.ethereumSignTx(
-        this.path,
-        TrezorWallet.makeHexEven(txData.nonce),
-        TrezorWallet.makeHexEven(txData.gasPrice),
-        TrezorWallet.makeHexEven(txData.gas),
-        TrezorWallet.makeHexEven(txData.to),
-        TrezorWallet.makeHexEven(txData.value),
-        TrezorWallet.makeHexEven(txData.data),
-        this.networkId,
-        (r) => {
-          console.log(r);
-          if (r.success) {
-            console.log(typeof r.v);
-            tx.v = Buffer.from(r.v.toString(16), 'hex');
-            tx.r = Buffer.from(r.r, 'hex');
-            tx.s = Buffer.from(r.s, 'hex');
-          } else {
-            reject(r.error); // error message
-          }
-          console.log(`0x${tx.serialize().toString('hex')}`);
-          // return signed transaction
-          resolve(`0x${tx.serialize().toString('hex')}`);
-        });
-    });
-  }
+		let session = await _getCurrentSession();
+		let signPromise = session.signEthTx(
+			_getAddressByIndex(accountIndex),
+			txData.nonce,
+			txData.gasPrice,
+			txData.gasLimit,
+			txData.to,
+			txData.value,
+			txData.data,
+			chainId
+		);
 
-  // Prepend 0 in case of uneven hex char count
-  static makeHexEven(input) {
-    console.log(input);
-    let output;
-    if (input.length % 2 !== 0) {
-      output = `0${input.slice(2)}`;
-    } else {
-      output = input.slice(2);
-    }
-    console.log(output);
-    return output;
+		let signed = null;
+		try {
+			signed = await timeout(signPromise, CUSTOM_TIME_OUT);
+		} catch (err) {
+			if (err instanceof TimeoutError) {
+				currentSession = null;
+			}
+			throw err;
+		}
+
+		const signedTx = new EthereumTx({
+			s: addHexPrefix(signed.s),
+			v: addHexPrefix(new BigNumber(signed.v).toString(16)),
+			r: addHexPrefix(signed.r.toString()),
+			...args.dataToSign
+		});
+		return {
+			raw: hexPrefix + signedTx.serialize().toString('hex')
+		};
   }
 
   /**
@@ -85,14 +135,31 @@ export default class TrezorWallet {
      * first one according to derivation path
      * @param {failableCallback} callback
      */
-  getAccounts(callback) {
-    TrezorConnect.ethereumGetAddress(this.path, (result) => {
-      if (result.success) {
-        callback(null, [`0x${result.address}`]);
-      } else {
-        callback(new Error('failed to get address from trezor'), null);
-      }
-    });
+  async getAccounts(callback) {
+
+    let session = await _getCurrentSession();
+
+		let addressN = {
+			address_n: defaultAddress
+		};
+
+		let result = await session.typedCall('GetPublicKey', 'PublicKey', addressN);
+		let chainCode = result.message.node.chain_code;
+		let publicKey = result.message.node.public_key;
+
+		let hdk = new HDKey();
+		hdk.publicKey = Buffer.from(publicKey, 'hex');
+		hdk.chainCode = Buffer.from(chainCode, 'hex');
+		let pathBase = 'm';
+		let wallets = [];
+		for (let i = 0; i < this.accountsQuantity; i++) {
+			const index = i + this.accountsOffset;
+			const dkey = hdk.derive(`${pathBase}/${index}`);
+			const address =  `0x${publicToAddress(dkey.publicKey, true).toString('hex')}`;
+			wallets.push({address, index});
+    }
+    this.wallets = wallets;
+    callback(null, wallets);
   }
 
   /**
@@ -105,10 +172,4 @@ export default class TrezorWallet {
       .then(res => callback(null, res))
       .catch(err => callback(err, null));
   }
-
-  // signMessage(txData, callback) {
-  //     this.signMessageAsync(txData)
-  //         .then(res => callback(null, res))
-  //         .catch(err => callback(err, null));
-  // }
 }
