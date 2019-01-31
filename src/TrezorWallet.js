@@ -18,6 +18,10 @@ const defaultAddress = [
 ];
 const deviceList = new trezor.DeviceList();
 
+process.on('exit', () => {
+	deviceList.onbeforeunload();
+});
+
 export default class TrezorWallet {
   constructor(networkId, accountsOffset = 0, accountsQuantity = 6, eventEmitter) {
     this.networkId = networkId; // Function which should return networkId
@@ -158,16 +162,19 @@ export default class TrezorWallet {
 			hdk.chainCode = Buffer.from(chainCode, 'hex');
 			let pathBase = 'm';
 			let wallets = [];
+			let addresses = [];
 			for (let i = 0; i < this.accountsQuantity; i++) {
 				const index = i + this.accountsOffset;
 				const dkey = hdk.derive(`${pathBase}/${index}`);
 				const address = `0x${publicToAddress(dkey.publicKey, true).toString('hex')}`;
+				addresses.push(address);
 				wallets.push({
 					address,
 					index
 				});
 			}
-			callback(null, wallets);
+			this.wallets = wallets;
+			callback(null, addresses);
 		} catch (error) {
 			callback(error, null);
 		}
