@@ -85,8 +85,8 @@ export default class TrezorWallet {
 			}
 		});
 
-		device.on('pin', this._pinCallback);
-    device.on('passphrase', this._passphraseCallback);
+		device.on('pin', this._pinCallback.bind(this));
+    device.on('passphrase', this._passphraseCallback.bind(this));
     
 		currentDevice = device;
 		currentSession = session;
@@ -141,31 +141,36 @@ export default class TrezorWallet {
      * first one according to derivation path
      * @param {failableCallback} callback
      */
-  getAccounts(callback) {
-    this._getCurrentSession().then(session => {
-      let addressN = {
-        address_n: defaultAddress
-      };
+  async getAccounts(callback) {
+    try {
+			let session = await this._getCurrentSession();
 
-      session.typedCall('GetPublicKey', 'PublicKey', addressN).then(result => {
-        let chainCode = result.message.node.chain_code;
-        let publicKey = result.message.node.public_key;
-  
-        let hdk = new HDKey();
-        hdk.publicKey = Buffer.from(publicKey, 'hex');
-        hdk.chainCode = Buffer.from(chainCode, 'hex');
-        let pathBase = 'm';
-        let wallets = [];
-        for (let i = 0; i < this.accountsQuantity; i++) {
-          const index = i + this.accountsOffset;
-          const dkey = hdk.derive(`${pathBase}/${index}`);
-          const address =  `0x${publicToAddress(dkey.publicKey, true).toString('hex')}`;
-          wallets.push({address, index});
-        }
-        this.wallets = wallets;
-        callback(null, wallets);
-      }).catch(err => callback(err, null));
-    }).catch(err => callback(err, null));
+			let addressN = {
+				address_n: defaultAddress
+			};
+
+			let result = await session.typedCall('GetPublicKey', 'PublicKey', addressN);
+			let chainCode = result.message.node.chain_code;
+			let publicKey = result.message.node.public_key;
+
+			let hdk = new HDKey();
+			hdk.publicKey = Buffer.from(publicKey, 'hex');
+			hdk.chainCode = Buffer.from(chainCode, 'hex');
+			let pathBase = 'm';
+			let wallets = [];
+			for (let i = 0; i < this.accountsQuantity; i++) {
+				const index = i + this.accountsOffset;
+				const dkey = hdk.derive(`${pathBase}/${index}`);
+				const address = `0x${publicToAddress(dkey.publicKey, true).toString('hex')}`;
+				wallets.push({
+					address,
+					index
+				});
+			}
+			callback(null, wallets);
+		} catch (error) {
+			callback(error, null);
+		}
   }
 
   /**
