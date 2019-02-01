@@ -18,26 +18,16 @@ const defaultAddress = [
 ];
 const deviceList = new trezor.DeviceList();
 
-process.on('exit', () => {
-	deviceList.onbeforeunload();
-});
-
 export default class TrezorWallet {
   constructor(networkId, accountsOffset = 0, accountsQuantity = 6, eventEmitter) {
-    this.networkId = networkId; // Function which should return networkId
+    this.networkId = networkId;
     this.getAccounts = this.getAccounts.bind(this);
     this.signTransaction = this.signTransaction.bind(this);
     this.accountsOffset = accountsOffset;
     this.accountsQuantity = accountsQuantity;
     this.eventEmitter = eventEmitter;
     this.wallets = [];
-    this._handleEvents();
   }
-
-  _handleEvents() {
-    deviceList.on('transport', ()=> this.eventEmitter.emit('TREZOR_TRASNPORT_INITIALIZED'));
-    deviceList.on('error', error => this.eventEmitter.emit('TREZOR_ERROR', error ));
-  } 
 
   _getAccountIndex(address) {
     return this.wallets.filter(wallet => {
@@ -50,17 +40,23 @@ export default class TrezorWallet {
   };
 
   _pinCallback(type, callback) {
-		this.eventEmitter.on('ON_PIN', (err, enteredPin) => {
-			callback(err, enteredPin);
-		});
 
+		if (eventEmitter.listenerCount('ON_PIN') === 0) {
+			this.eventEmitter.on('ON_PIN', (err, enteredPin) => {
+				callback(err, enteredPin);
+			});
+		}
+		
 		this.eventEmitter.emit('TREZOR_PIN_REQUEST');
 	}
 
   _passphraseCallback(callback) {
-		this.eventEmitter.on('ON_PASSPHRASE', (err, enteredPassphrase) => {
-			callback(err, enteredPassphrase);
-		});
+
+		if (eventEmitter.listenerCount('ON_PASSPHRASE') === 0) {
+			this.eventEmitter.on('ON_PASSPHRASE', (err, enteredPassphrase) => {
+				callback(err, enteredPassphrase);
+			});
+		}
 
 		this.eventEmitter.emit('TREZOR_PASSPHRASE_REQUEST');
 	}
